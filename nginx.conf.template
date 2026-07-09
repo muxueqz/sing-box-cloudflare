@@ -1,0 +1,34 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        # 伪装站（可选：可以自行修改 root 目录放一个静态 HTML）
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+
+        # VLESS WS 反向代理
+        location /ws/$UUID {
+            if ($http_upgrade != "websocket") {
+                return 404;
+            }
+            proxy_redirect off;
+            proxy_pass http://127.0.0.1:10000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+}
